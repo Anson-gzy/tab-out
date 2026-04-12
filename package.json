@@ -5,9 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server/index.js",
-    "install-service": "node scripts/install.js",
-    "generate-icons": "node scripts/generate-icons.js",
-    "package-extension": "node scripts/package-extension.js"
+    "install-service": "node scripts/install.js"
   },
   "keywords": [],
   "author": "",
