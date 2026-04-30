@@ -6,3 +6,15 @@ docs/superpowers/
 
 # Personal config (landing page patterns, etc.) — never push to GitHub
 extension/config.local.js
+
+# Local Xcode build output
+.derived-data/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+
+# Large generated greeting source images; final runtime PNGs stay tracked
+extension/assets/greetings/source/
+extension/assets/greetings/source-v2/
+safari/TabOutSafari/TabOutSafari Extension/Resources/assets/greetings/source/
+safari/TabOutSafari/TabOutSafari Extension/Resources/assets/greetings/source-v2/
