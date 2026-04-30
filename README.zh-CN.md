@@ -1,6 +1,6 @@
 # Tab Out Safari
 
-[Read in English](README.md)
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
 Tab Out Safari 是基于 [Zara 原版 Tab Out](https://github.com/zarazhangrui/tab-out) 的 Safari 可用版本。它会把浏览器的新标签页变成一个更安静、更清晰的标签页控制台：自动按域名分组、快速关闭、稍后再看、手写体问候语，以及更贴近 macOS 的 UI。
 

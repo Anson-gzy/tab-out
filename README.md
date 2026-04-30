@@ -1,6 +1,6 @@
 # Tab Out Safari
 
-[Read in Chinese](README.zh-CN.md)
+[English](./README.md) | [简体中文](./README.zh-CN.md)
 
 Tab Out Safari is a Safari-ready fork of [Zara's original Tab Out](https://github.com/zarazhangrui/tab-out). It turns your browser's new tab page into a calm tab mission control: grouped open tabs, quick close actions, saved-for-later items, handwritten greetings, and a cleaner macOS-friendly UI.
 
