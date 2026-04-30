@@ -215,21 +215,32 @@ async function closeTabsExact(urls) {
 }
 
 /**
- * focusTab(url)
+ * focusTab(url, tabId, windowId)
  *
- * Switches the browser to the tab with the given URL (exact match first,
- * then hostname fallback). Also brings the window to the front.
+ * Switches the browser to the tab the user clicked. Prefer tab.id because
+ * long-lived tabs can be restored, redirected, or URL-normalized after the
+ * dashboard renders, while the browser tab id remains the stable handle.
+ * URL matching is kept as a fallback for older saved markup or missing ids.
  */
-async function focusTab(url) {
-  if (!url) return;
+async function focusTab(url, tabId, windowId) {
+  if (!url && !tabId) return;
   const allTabs = await extensionApi.tabs.query({});
   const currentWindow = await extensionApi.windows.getCurrent();
+  const numericTabId = Number(tabId);
+  const numericWindowId = Number(windowId);
 
-  // Try exact URL match first
-  let matches = allTabs.filter(t => t.url === url);
+  let match = Number.isFinite(numericTabId)
+    ? allTabs.find(t => t.id === numericTabId)
+    : null;
 
-  // Fall back to hostname match
-  if (matches.length === 0) {
+  // Try exact URL match when the tab id is unavailable or stale.
+  let matches = [];
+  if (!match && url) {
+    matches = allTabs.filter(t => t.url === url);
+  }
+
+  // Fall back to hostname match only as a last resort.
+  if (!match && matches.length === 0 && url) {
     try {
       const targetHost = new URL(url).hostname;
       matches = allTabs.filter(t => {
@@ -239,12 +250,28 @@ async function focusTab(url) {
     } catch {}
   }
 
-  if (matches.length === 0) return;
+  if (!match && matches.length > 0) {
+    match = Number.isFinite(numericWindowId)
+      ? matches.find(t => t.windowId === numericWindowId) || matches[0]
+      : matches.find(t => t.windowId !== currentWindow.id) || matches[0];
+  }
 
-  // Prefer a match in a different window so it actually switches windows
-  const match = matches.find(t => t.windowId !== currentWindow.id) || matches[0];
-  await extensionApi.tabs.update(match.id, { active: true });
-  await extensionApi.windows.update(match.windowId, { focused: true });
+  if (!match) {
+    showToast('Could not find that tab');
+    await fetchOpenTabs();
+    return;
+  }
+
+  try {
+    await extensionApi.tabs.update(match.id, { active: true });
+    if (Number.isFinite(match.windowId) && extensionApi.windows && extensionApi.windows.update) {
+      await extensionApi.windows.update(match.windowId, { focused: true });
+    }
+  } catch (err) {
+    console.warn('[tab-out] Failed to focus tab:', err);
+    showToast('Could not open that tab');
+    await fetchOpenTabs();
+  }
 }
 
 /**
@@ -868,7 +895,9 @@ function buildOverflowChips(hiddenTabs, urlCounts = {}) {
     const safeUrl   = escapeHtml(tab.url || '');
     const safeTitle = escapeHtml(label);
     const safeFavIconUrl = escapeHtml(tabFavicon(tab));
-    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" title="${safeTitle}">
+    const safeTabId = escapeHtml(tab.id || '');
+    const safeWindowId = escapeHtml(tab.windowId || '');
+    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" data-tab-id="${safeTabId}" data-window-id="${safeWindowId}" title="${safeTitle}">
       ${safeFavIconUrl ? `<img class="chip-favicon" src="${safeFavIconUrl}" alt="" loading="lazy" decoding="async">` : ''}
       <span class="chip-text">${escapeHtml(label)}</span>${dupeTag}
       <div class="chip-actions">
@@ -948,7 +977,9 @@ function renderDomainCard(group, groupIndex = 0) {
     const safeUrl   = escapeHtml(tab.url || '');
     const safeTitle = escapeHtml(label);
     const safeFavIconUrl = escapeHtml(tabFavicon(tab));
-    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" title="${safeTitle}">
+    const safeTabId = escapeHtml(tab.id || '');
+    const safeWindowId = escapeHtml(tab.windowId || '');
+    return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" data-tab-id="${safeTabId}" data-window-id="${safeWindowId}" title="${safeTitle}">
       ${safeFavIconUrl ? `<img class="chip-favicon" src="${safeFavIconUrl}" alt="" loading="lazy" decoding="async">` : ''}
       <span class="chip-text">${escapeHtml(label)}</span>${dupeTag}
       <div class="chip-actions">
@@ -1342,7 +1373,7 @@ document.addEventListener('click', async (e) => {
   // ---- Focus a specific tab ----
   if (action === 'focus-tab') {
     const tabUrl = actionEl.dataset.tabUrl;
-    if (tabUrl) await focusTab(tabUrl);
+    await focusTab(tabUrl, actionEl.dataset.tabId, actionEl.dataset.windowId);
     return;
   }
 
