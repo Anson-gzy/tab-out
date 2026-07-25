@@ -111,6 +111,13 @@ function isRealTab(tab) {
   return !isInternalBrowserUrl(tab.url);
 }
 
+function isStaleTab(tab) {
+  if (!tab) return false;
+  if (tab.discarded) return true;
+  if (tab.status === 'unloaded') return true;
+  return false;
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
     '&': '&amp;',
@@ -143,13 +150,15 @@ async function fetchOpenTabs() {
         url:      t.url,
         title:    t.title,
         windowId: t.windowId,
+        index:    t.index,
         active:   t.active,
         favIconUrl: t.favIconUrl,
+        discarded: !!t.discarded,
+        status:    t.status,
         isInternal: urlInfo.isInternal,
         protocol:   urlInfo.protocol,
         hostname:   urlInfo.hostname,
         pathname:   urlInfo.pathname,
-        // Flag Tab Out's own pages so we can detect duplicate new tabs
         isTabOut: t.url === newtabUrl || t.url === 'chrome://newtab/' || t.url === 'about:newtab',
       };
     });
@@ -263,6 +272,21 @@ async function focusTab(url, tabId, windowId) {
   }
 
   try {
+    if (match.discarded || match.status === 'unloaded') {
+      const newTab = await extensionApi.tabs.create({
+        url: match.url,
+        windowId: match.windowId,
+        index: (match.index ?? 0) + 1,
+        active: true,
+      });
+      await extensionApi.tabs.remove(match.id);
+      if (Number.isFinite(match.windowId) && extensionApi.windows && extensionApi.windows.update) {
+        await extensionApi.windows.update(match.windowId, { focused: true });
+      }
+      await fetchOpenTabs();
+      return;
+    }
+
     await extensionApi.tabs.update(match.id, { active: true });
     if (Number.isFinite(match.windowId) && extensionApi.windows && extensionApi.windows.update) {
       await extensionApi.windows.update(match.windowId, { focused: true });
@@ -954,6 +978,13 @@ function renderDomainCard(group, groupIndex = 0) {
       </span>`
     : '';
 
+  const staleCount = tabs.filter(t => isStaleTab(t)).length;
+  const staleBadge = staleCount > 0
+    ? `<span class="open-tabs-badge stale-tabs-badge">
+        ${staleCount} stale
+      </span>`
+    : '';
+
   // Deduplicate for display: show each URL once, with (Nx) badge if duped
   const seen = new Set();
   const uniqueTabs = [];
@@ -972,17 +1003,25 @@ function renderDomainCard(group, groupIndex = 0) {
       if (parsed.hostname === 'localhost' && parsed.port) label = `${parsed.port} ${label}`;
     } catch {}
     const count    = urlCounts[tab.url];
+    const stale    = isStaleTab(tab);
     const dupeTag  = count > 1 ? ` <span class="chip-dupe-badge">(${count}x)</span>` : '';
-    const chipClass = count > 1 ? ' chip-has-dupes' : '';
+    const staleTag = stale ? ' <span class="chip-stale-badge">stale</span>' : '';
+    const chipClass = (count > 1 ? ' chip-has-dupes' : '') + (stale ? ' chip-stale' : '');
     const safeUrl   = escapeHtml(tab.url || '');
     const safeTitle = escapeHtml(label);
     const safeFavIconUrl = escapeHtml(tabFavicon(tab));
     const safeTabId = escapeHtml(tab.id || '');
     const safeWindowId = escapeHtml(tab.windowId || '');
+    const reloadBtn = stale
+      ? `<button class="chip-action chip-reload" data-action="reload-stale-tab" data-tab-url="${safeUrl}" data-tab-id="${safeTabId}" data-window-id="${safeWindowId}" title="Reopen in fresh tab">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+        </button>`
+      : '';
     return `<div class="page-chip clickable${chipClass}" data-action="focus-tab" data-tab-url="${safeUrl}" data-tab-id="${safeTabId}" data-window-id="${safeWindowId}" title="${safeTitle}">
       ${safeFavIconUrl ? `<img class="chip-favicon" src="${safeFavIconUrl}" alt="" loading="lazy" decoding="async">` : ''}
-      <span class="chip-text">${escapeHtml(label)}</span>${dupeTag}
+      <span class="chip-text">${escapeHtml(label)}</span>${dupeTag}${staleTag}
       <div class="chip-actions">
+        ${reloadBtn}
         <button class="chip-action chip-save" data-action="defer-single-tab" data-tab-url="${safeUrl}" data-tab-title="${safeTitle}" data-tab-favicon="${safeFavIconUrl}" title="Save for later">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" /></svg>
         </button>
@@ -1007,6 +1046,14 @@ function renderDomainCard(group, groupIndex = 0) {
       </button>`;
   }
 
+  if (staleCount > 0) {
+    actionsHtml += `
+      <button class="action-btn reload-stale" data-action="reload-domain-stale" data-domain-id="${stableId}">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg>
+        Reload ${staleCount} stale tab${staleCount !== 1 ? 's' : ''}
+      </button>`;
+  }
+
   return `
     <div class="mission-card domain-card ${hasDupes ? 'has-amber-bar' : 'has-neutral-bar'}" data-domain-id="${stableId}" style="--reveal-delay:${revealDelay}ms">
       <div class="status-bar"></div>
@@ -1015,6 +1062,7 @@ function renderDomainCard(group, groupIndex = 0) {
           <span class="mission-name">${escapeHtml(isLanding ? 'Homepages' : (group.label || friendlyDomain(group.domain)))}</span>
           ${tabBadge}
           ${dupeBadge}
+          ${staleBadge}
         </div>
         <div class="mission-pages">${pageChips}</div>
         <div class="actions">${actionsHtml}</div>
@@ -1309,7 +1357,11 @@ async function renderStaticDashboard() {
 
   if (domainGroups.length > 0 && openTabsSection) {
     if (openTabsSectionTitle) openTabsSectionTitle.textContent = 'Open tabs';
-    openTabsSectionCount.innerHTML = `${domainGroups.length} domain${domainGroups.length !== 1 ? 's' : ''} &nbsp;&middot;&nbsp; <button class="action-btn close-tabs section-close-tabs" data-action="close-all-open-tabs">${ICONS.close} Close all ${realTabs.length} tabs</button>`;
+    const totalStale = realTabs.filter(t => isStaleTab(t)).length;
+    const staleAction = totalStale > 0
+      ? ` &nbsp;&middot;&nbsp; <button class="action-btn reload-stale section-reload-stale" data-action="reload-all-stale"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" /></svg> Reload ${totalStale} stale</button>`
+      : '';
+    openTabsSectionCount.innerHTML = `${domainGroups.length} domain${domainGroups.length !== 1 ? 's' : ''} &nbsp;&middot;&nbsp; <button class="action-btn close-tabs section-close-tabs" data-action="close-all-open-tabs">${ICONS.close} Close all ${realTabs.length} tabs</button>${staleAction}`;
     openTabsMissionsEl.classList.add('stagger-in');
     openTabsMissionsEl.innerHTML = domainGroups.map((g, index) => renderDomainCard(g, index)).join('');
     openTabsSection.style.display = 'block';
@@ -1374,6 +1426,97 @@ document.addEventListener('click', async (e) => {
   if (action === 'focus-tab') {
     const tabUrl = actionEl.dataset.tabUrl;
     await focusTab(tabUrl, actionEl.dataset.tabId, actionEl.dataset.windowId);
+    return;
+  }
+
+  // ---- Reload a single stale tab (close old + open fresh) ----
+  if (action === 'reload-stale-tab') {
+    e.stopPropagation();
+    const tabId = Number(actionEl.dataset.tabId);
+    const tabUrl = actionEl.dataset.tabUrl;
+    const windowId = Number(actionEl.dataset.windowId);
+    if (!tabUrl) return;
+
+    try {
+      const allTabs = await extensionApi.tabs.query({});
+      const oldTab = allTabs.find(t => t.id === tabId);
+      await extensionApi.tabs.create({
+        url: tabUrl,
+        windowId: Number.isFinite(windowId) ? windowId : undefined,
+        index: oldTab ? (oldTab.index ?? 0) + 1 : undefined,
+        active: false,
+      });
+      if (oldTab) await extensionApi.tabs.remove(oldTab.id);
+      await fetchOpenTabs();
+    } catch {}
+
+    const chip = actionEl.closest('.page-chip');
+    if (chip) chip.classList.remove('chip-stale');
+    const badge = chip && chip.querySelector('.chip-stale-badge');
+    if (badge) badge.remove();
+    actionEl.remove();
+
+    showToast('Tab reopened');
+    return;
+  }
+
+  // ---- Reload all stale tabs in a domain group ----
+  if (action === 'reload-domain-stale') {
+    const domainId = actionEl.dataset.domainId;
+    const group = domainGroups.find(g =>
+      'domain-' + g.domain.replace(/[^a-z0-9]/g, '-') === domainId
+    );
+    if (!group) return;
+
+    const staleTabs = group.tabs.filter(t => isStaleTab(t));
+    const allTabs = await extensionApi.tabs.query({});
+    let reloaded = 0;
+
+    for (const st of staleTabs) {
+      const oldTab = allTabs.find(t => t.id === st.id);
+      if (!oldTab) continue;
+      try {
+        await extensionApi.tabs.create({
+          url: oldTab.url,
+          windowId: oldTab.windowId,
+          index: (oldTab.index ?? 0) + 1,
+          active: false,
+        });
+        await extensionApi.tabs.remove(oldTab.id);
+        reloaded++;
+      } catch {}
+    }
+
+    await fetchOpenTabs();
+    showToast(`Reopened ${reloaded} stale tab${reloaded !== 1 ? 's' : ''}`);
+    setTimeout(() => renderDashboard(), 300);
+    return;
+  }
+
+  // ---- Reload ALL stale tabs across all domains ----
+  if (action === 'reload-all-stale') {
+    const allStaleTabs = openTabs.filter(t => isRealTab(t) && isStaleTab(t));
+    const allTabs = await extensionApi.tabs.query({});
+    let reloaded = 0;
+
+    for (const st of allStaleTabs) {
+      const oldTab = allTabs.find(t => t.id === st.id);
+      if (!oldTab) continue;
+      try {
+        await extensionApi.tabs.create({
+          url: oldTab.url,
+          windowId: oldTab.windowId,
+          index: (oldTab.index ?? 0) + 1,
+          active: false,
+        });
+        await extensionApi.tabs.remove(oldTab.id);
+        reloaded++;
+      } catch {}
+    }
+
+    await fetchOpenTabs();
+    showToast(`Reopened ${reloaded} stale tab${reloaded !== 1 ? 's' : ''}`);
+    setTimeout(() => renderDashboard(), 300);
     return;
   }
 

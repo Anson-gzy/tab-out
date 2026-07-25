@@ -505,6 +505,49 @@ header {
   background: rgba(var(--accent-rgb), 0.04);
 }
 
+/* Stale (discarded) tab indicators */
+.chip-stale .chip-favicon {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.chip-stale .chip-text {
+  opacity: 0.5;
+}
+
+.chip-stale-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #b8892e;
+  background: rgba(184, 137, 46, 0.1);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.stale-tabs-badge {
+  color: #b8892e !important;
+  border-color: rgba(184, 137, 46, 0.2);
+}
+
+.chip-reload {
+  opacity: 0.6;
+}
+
+.chip-reload:hover {
+  color: #b8892e;
+  background: rgba(184, 137, 46, 0.1);
+  opacity: 1;
+}
+
+.reload-stale {
+  color: #b8892e;
+}
+
+.reload-stale:hover {
+  background: rgba(184, 137, 46, 0.08);
+}
+
 /* "+N more" overflow chip */
 .page-chip-overflow {
   font-size: 12px;

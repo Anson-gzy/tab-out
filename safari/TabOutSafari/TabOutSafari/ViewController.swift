@@ -30,7 +30,12 @@ class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHan
         SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: extensionBundleIdentifier) { (state, error) in
             guard let state = state, error == nil else {
                 DispatchQueue.main.async {
-                    self.openSafariSettingsAndQuit()
+                    if #available(macOS 13, *) {
+                        webView.evaluateJavaScript("show(undefined, true)")
+                    } else {
+                        webView.evaluateJavaScript("show(undefined, false)")
+                    }
+                    self.openSafariSettings()
                 }
                 return
             }
@@ -42,7 +47,9 @@ class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHan
                     webView.evaluateJavaScript("show(\(state.isEnabled), false)")
                 }
 
-                self.openSafariSettingsAndQuit()
+                if !state.isEnabled {
+                    self.openSafariSettings()
+                }
             }
         }
     }
@@ -52,16 +59,16 @@ class ViewController: NSViewController, WKNavigationDelegate, WKScriptMessageHan
             return;
         }
 
-        openSafariSettingsAndQuit()
+        openSafariSettings()
     }
 
-    private func openSafariSettingsAndQuit() {
+    private func openSafariSettings() {
         guard !didOpenSafariSettings else { return }
         didOpenSafariSettings = true
 
         SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { error in
             DispatchQueue.main.async {
-                NSApplication.shared.terminate(nil)
+                self.didOpenSafariSettings = false
             }
         }
     }

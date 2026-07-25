@@ -55,6 +55,10 @@ async function setBadgeBackgroundColor(color) {
  * Counts open real-web tabs and updates the extension's toolbar badge.
  * "Real" tabs = not browser internals, extension pages, or about:blank.
  */
+let badgeUpdateTimer = null;
+let badgeUpdateInFlight = false;
+let badgeUpdateQueued = false;
+
 async function updateBadge() {
   if (!extensionApi || !extensionApi.tabs || !actionApi) return;
 
@@ -87,36 +91,59 @@ async function updateBadge() {
   }
 }
 
+function scheduleBadgeUpdate(delay = 300) {
+  if (badgeUpdateTimer) clearTimeout(badgeUpdateTimer);
+
+  badgeUpdateTimer = setTimeout(async () => {
+    badgeUpdateTimer = null;
+
+    if (badgeUpdateInFlight) {
+      badgeUpdateQueued = true;
+      return;
+    }
+
+    badgeUpdateInFlight = true;
+    try {
+      await updateBadge();
+    } finally {
+      badgeUpdateInFlight = false;
+
+      if (badgeUpdateQueued) {
+        badgeUpdateQueued = false;
+        scheduleBadgeUpdate(delay);
+      }
+    }
+  }, delay);
+}
+
 // ─── Event listeners ──────────────────────────────────────────────────────────
 
 if (extensionApi && extensionApi.runtime && extensionApi.tabs) {
   // Update badge when the extension is first installed
   extensionApi.runtime.onInstalled.addListener(() => {
-    updateBadge();
+    scheduleBadgeUpdate(100);
   });
 
   // Update badge when the browser starts up
   if (extensionApi.runtime.onStartup) extensionApi.runtime.onStartup.addListener(() => {
-    updateBadge();
+    scheduleBadgeUpdate(500);
   });
 
-  // Update badge whenever a tab is opened
+  // Update shortly after a tab is opened so about:blank/new-tab transitions can
+  // settle before we count. Avoid listening to normal page navigation because
+  // Safari can emit many onUpdated events while a page is opening.
   extensionApi.tabs.onCreated.addListener(() => {
-    updateBadge();
+    scheduleBadgeUpdate(900);
   });
 
   // Update badge whenever a tab is closed
   extensionApi.tabs.onRemoved.addListener(() => {
-    updateBadge();
-  });
-
-  // Update badge when a tab's URL changes (e.g. navigating to/from browser internals)
-  extensionApi.tabs.onUpdated.addListener(() => {
-    updateBadge();
+    scheduleBadgeUpdate(100);
   });
 }
 
 // ─── Initial run ─────────────────────────────────────────────────────────────
 
-// Run once immediately when the service worker first loads
-updateBadge();
+// Run once after the service worker first loads, but keep it off the critical
+// path for page navigation.
+scheduleBadgeUpdate(500);
