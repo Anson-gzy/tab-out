@@ -1,0 +1,18 @@
+{
+  "locale": "en-US",
+  "name": "Tab Out: Tab Manager & Cleaner",
+  "subtitle": "Group Safari Tabs by Website",
+  "keywords": "organizer,new tab,extension,duplicate,dashboard,browser,bookmark,reading list,declutter,focus,window",
+  "promotionalText": "Too many tabs? Open a new tab and see every page you have open, grouped by website. Close what you are done with in one click, keep what matters",
+  "description": "Tab Out turns Safari's new tab page into a calm dashboard of everything you have open.\n\nInstead of squinting at a row of tiny tab titles, open a new tab and see all your tabs grouped by website, across every Safari window. Find the page you need in a second, jump straight to it, and close the ones you are done with.\n\nWHAT YOU GET\n\n• All open tabs at a glance, grouped by site in a clean grid\n• Homepages group: Gmail inbox, X, YouTube, GitHub and other home pages collected into one card, ready to clear out\n• Duplicate detection: the same page open twice gets a badge, and one click keeps just one copy\n• Close one tab or a whole group in one click, with a satisfying swoosh\n• Click any title to jump to that tab, even in another Safari window\n• Save for later: park a tab on a simple checklist, then close it without losing it\n• Greets you with a fresh look every morning, afternoon and evening\n\nPRIVATE BY DESIGN\n\nTab Out runs entirely on your Mac. No account, no sign-up, no analytics, no ads, no network requests. Your tabs and saved items stay in Safari's local extension storage and never leave your device.\n\nHOW TO START\n\n1. Open Tab Out once after installing\n2. Turn on Tab Out in Safari Settings > Extensions\n3. Open a new tab\n\nFREE AND OPEN SOURCE\n\nTab Out is free, with no in-app purchases. The source code is on GitHub under the MIT License.\n\nThe Safari version is based on the open-source Tab Out project by Zara Zhang (github.com/zarazhangrui/tab-out), used under the MIT License.",
+  "whatsNew": null,
+  "supportUrl": "https://github.com/Anson-gzy/tab-out/issues",
+  "marketingUrl": "https://github.com/Anson-gzy/tab-out",
+  "privacyPolicyUrl": "https://github.com/Anson-gzy/tab-out/blob/main/PRIVACY.md",
+  "copyright": "2026 Lifeng Gu",
+  "primaryCategory": "PRODUCTIVITY",
+  "secondaryCategory": "UTILITIES",
+  "price": "free",
+  "excludedTerritories": ["CHN"],
+  "reviewNotes": "Tab Out is a Safari Web Extension. To test: 1) Launch the Tab Out app once. 2) In Safari, open Settings > Extensions and enable Tab Out (allow it when Safari asks). 3) Open several web pages, then open a new tab (Cmd+T). The new tab page shows all open tabs grouped by website. Click a title to switch to that tab, click X to close a tab, or use the bookmark icon to save a tab for later. No account or login is required. The extension makes no network requests; all data stays in browser.storage.local."
+}
