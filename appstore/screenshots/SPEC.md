@@ -1,51 +1,49 @@
-# Mac App Store screenshots — spec
+# Mac App Store screenshots v2 — spec
+
+The v1 set was rejected by the user: all five looked the same (same window, same position,
+same layout, only the caption changed). v2 must make every page visually distinct at
+thumbnail size, while staying one coherent series.
 
 Output: 5 PNG files, exactly 2880x1800, RGB (no alpha), in `appstore/screenshots/out/`
-named `01-hero.png` … `05-private.png`. One command regenerates all of them:
-`bash appstore/screenshots/render.sh`.
+named `01-hero.png` … `05-private.png` (keep the file names; 05 is now the "swoosh" page).
+One command regenerates all: `bash appstore/screenshots/render.sh`.
 
-## How
+## Hard rules (unchanged from v1)
 
-- Render the REAL dashboard: `extension/index.html` + `extension/style.css` + `extension/app.js`,
-  unmodified. Do not edit anything under `extension/` or `safari/`.
-- `appstore/screenshots/harness.html` (or similar) defines `globalThis.browser` before `app.js`
-  loads, mocking exactly what app.js calls: `tabs.query/create/remove/update`,
-  `windows.getCurrent/update`, `storage.local.get/set`, `runtime.getURL`.
-  Fixtures come from a JSON/JS file in the same folder. No network: no remote favicons
-  (leave `favIconUrl` empty or use local data URIs).
-- Freeze time to a morning (e.g. 09:12) so the greeting is "Good morning".
-- Render with headless Chrome (`/Applications/Google Chrome.app`) at window 1440x900
-  and `--force-device-scale-factor=2`, OR render the framed composite directly at 2880x1800
-  with scale 1. Either way the final PNG is 2880x1800.
-- Composite = soft background matching the extension's palette (read the colors from
-  style.css), a short headline + one-line subhead at the top in a clean sans
-  (-apple-system / SF Pro), and the dashboard shown inside a simple macOS Safari-like
-  window frame (rounded corners, traffic lights, an address bar that reads "New Tab"; drawn
-  with HTML/CSS, no Apple logos, no real Safari UI screenshots). The dashboard must be
-  large and legible; it is the product.
-- Text is English only. No device frames, no prices, no "#1" or "best" claims, no Apple
-  trademarks other than the words "Safari" and "Mac".
+- Every piece of UI is the REAL dashboard rendered from `extension/index.html` + `style.css`
+  + `app.js`, unmodified, via the existing mock-API harness and fixtures. Nothing under
+  `extension/` or `safari/` changes. No hand-drawn fake UI (App Review 2.3.3).
+- Headless Google Chrome; final PNGs 2880x1800, opaque.
+- English only. No prices, rankings, ratings, Apple logos, device frames.
+- Captions have NO trailing period. No em dashes.
 
-## The five shots
+## Visual identity (Tab Out's own, not FlowIt's)
 
-| file | headline | subhead | state of the dashboard |
-|---|---|---|---|
-| 01-hero.png | All your open tabs. One calm page. | Tab Out turns Safari's new tab into a clear map of everything you have open. | ~28 tabs across ~8 domains, Homepages group present |
-| 02-grouped.png | Grouped by site, automatically | Every tab sorted into a card per domain, so you find any page in a second. | same data, emphasise cards (crop/zoom into the grid is fine) |
-| 03-duplicates.png | Spot duplicates. Close them in one click. | Same page open twice? Tab Out flags it and keeps just one. | at least two groups with an amber "(2x)" / duplicate badge visible |
-| 04-saved.png | Save for later, close without guilt | Park a tab on your reading list, then clear the clutter. | "Saved for later" sidebar open with 4-5 items |
-| 05-private.png | 100% local. No account. No tracking. | Your tabs never leave your Mac. Free and open source. | a calm, smaller set of tabs (~10) |
+- Palette from extension/style.css: ink `#24384a`, slate `#547a95`, page `#e8edf2`,
+  paper `#ffffff`, duplicate amber (read the exact amber the app uses for "(2x)").
+- Headline font: the serif the app uses for "Open tabs" (`ui-serif, "New York", Georgia`),
+  large (150–200px at 2880 wide), tight leading, with ONE word per headline set in italic
+  slate as the accent. Subhead: SF Pro (`-apple-system`) 52–60px, muted ink.
+- A simple macOS-style window frame (rounded 28px corners, traffic lights, thin title bar)
+  drawn in CSS around the full dashboard when a window is shown.
+- "Lifted card": a real card of the dashboard shown magnified (1.5–2.2x) on its own, with
+  rounded corners and a soft large shadow, overlapping the window or floating free. Produce
+  it by rendering the harness again and clipping to that element (e.g. an iframe of the
+  harness scaled with CSS transform and clipped to the element's bounding box measured via
+  getBoundingClientRect), so it is pixel-real, not redrawn.
 
-## Fixture tabs (realistic, English)
+## The five pages — each a different composition
 
-Domains to use: github.com (PRs/issues), stackoverflow.com, developer.mozilla.org,
-en.wikipedia.org, news.ycombinator.com, docs.google.com, figma.com, notion.so, medium.com,
-youtube.com (one homepage + a couple of videos), mail.google.com (inbox = homepage group),
-x.com (home = homepage group), localhost:3000. Titles must look like real pages a knowledge
-worker would have open (e.g. "Fix race condition in sync worker · Pull Request #482").
-No personal names, emails or anything that looks like real private data.
+| file | background | headline (accent word in italics) | subhead | composition | dashboard state |
+|---|---|---|---|---|---|
+| 01-hero.png | ink `#24384a`, headline in white | Every open tab, *one* calm page | Tab Out turns Safari's new tab into a map of everything you have open | headline top-left; window large, anchored bottom-right and bleeding off the right and bottom edges of the canvas (cropped), slight upward perspective is NOT allowed, keep it flat | full: ~29 tabs, 12 domains |
+| 02-grouped.png | page `#e8edf2` | Sorted by *site*, automatically | Every tab lands in a card for its website, so you find any page in a second | headline in left 38% column, vertically centred; window on the right 60%; the GitHub card lifted at ~1.8x, overlapping the window's left edge | full set |
+| 03-duplicates.png | warm white `#f7f4ee` | *Duplicates*, gone in one click | Same page open twice? Tab Out flags it and keeps just one | NO window. Headline centred at top; below it two lifted cards side by side at ~2x: GitHub with "(2x)" + "Close 1 duplicate", and Stack Overflow with "(2x)"; a thin slate hand-drawn-style SVG arrow pointing at one "Close 1 duplicate" button | duplicates state |
+| 04-saved.png | slate `#547a95`, headline white | Save it for *later*, close the rest | Park a page on a simple checklist, then clear the clutter | mirrored: window on the LEFT 60% (bleeding off the left edge), headline right column; the "Saved for later" sidebar lifted at ~1.8x overlapping the window's right edge | saved state, 5 saved items |
+| 05-private.png | page `#e8edf2` | Close tabs with a *swoosh* | A satisfying burst of confetti every time you clear a group. All local, nothing tracked | headline centred top; window centred below, full width-ish; the real confetti animation captured mid-burst over a card that is closing | trigger the app's real close action (click a card's "Close all N tabs" in the harness) and screenshot ~250–400ms into the confetti; make the capture deterministic (freeze Math.random with a seeded PRNG and use --virtual-time-budget or a fixed wait) |
 
 ## Check before you finish
 
-Open every PNG and look at it (not just dimensions): text not clipped, no empty dashboard,
-no console-error state, no scrollbars, greeting visible.
+Open and look at every PNG at full size: nothing clipped unintentionally, no empty
+dashboard, lifted cards are crisp (rendered at 2x device scale, not upscaled bitmaps),
+pages look clearly different from each other as thumbnails, confetti visible on 05.
