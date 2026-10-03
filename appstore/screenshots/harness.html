@@ -182,7 +182,7 @@
       border: 1px solid rgba(36, 56, 74, 0.12) !important;
       padding: 20px 22px !important;
       box-shadow: none !important;
-      width: 320px !important;
+      width: 290px !important;
       position: static !important;
       max-height: none !important;
     }
@@ -327,11 +327,11 @@
         }
         setTimeout(function() {
           closeBtn.click();
-          // Let confetti burst progress for 300ms into the burst, then freeze
+          // Let confetti burst progress for 150ms into the burst, then freeze
           setTimeout(function() {
             rafActive = false; // Freeze all confetti rAF loops mid-burst
             notifyParent();
-          }, 300);
+          }, 150);
         }, 60);
         return;
       }

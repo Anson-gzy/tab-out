@@ -340,13 +340,13 @@
     }
     .shot-03-container .cards-row {
       position: absolute;
-      top: 225px;
+      top: 380px;
       left: 0;
       width: 100%;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      gap: 50px;
+      gap: 36px;
       z-index: 5;
     }
     .shot-03-container .lifted-card-wrapper {
@@ -369,22 +369,22 @@
     }
     .shot-04-container .window-frame {
       position: absolute;
-      left: -140px;
+      left: -160px;
       top: 50px;
-      width: 940px;
+      width: 920px;
       height: 800px;
       z-index: 2;
     }
     .shot-04-container .header-block {
       position: absolute;
-      right: 60px;
-      top: 130px;
-      width: 440px;
+      left: 960px;
+      top: 140px;
+      width: 420px;
       z-index: 10;
     }
     #lifted-04-sidebar {
-      left: 420px;
-      top: 260px;
+      left: 410px;
+      top: 240px;
       z-index: 25;
     }
 
@@ -411,6 +411,11 @@
       width: 1300px;
       height: 680px;
       z-index: 2;
+    }
+    #lifted-05-github {
+      left: 720px;
+      top: 310px;
+      z-index: 25;
     }
   </style>
 </head>
@@ -476,7 +481,10 @@
     }
 
     // Helper: Clip iframe to element
-    function clipToElement(wrapper, iframe, selector, scale, onDone) {
+    function clipToElement(wrapper, iframe, selector, scale, onDone, targetWidth) {
+      if (targetWidth) {
+        iframe.style.width = targetWidth + 'px';
+      }
       let attempts = 0;
       function attempt() {
         attempts++;
@@ -493,7 +501,7 @@
                 wrapper.style.height = h + 'px';
                 wrapper.style.borderRadius = Math.round(8 * scale) + 'px';
 
-                const docW = Math.max(doc.documentElement.scrollWidth, 1200);
+                const docW = targetWidth || Math.max(doc.documentElement.scrollWidth, 1200);
                 const docH = Math.max(doc.documentElement.scrollHeight, 800);
                 iframe.style.position = 'absolute';
                 iframe.style.left = '0';
@@ -566,18 +574,13 @@
             </div>
           </div>
           <!-- Thin slate hand-drawn style arrow pointing at Close 1 duplicate button -->
-          <svg class="arrow-svg" id="arrowSvg" width="160" height="130" viewBox="0 0 160 130" style="display:none">
+          <svg class="arrow-svg" id="arrowSvg" viewBox="0 0 1440 900" style="position: absolute; left: 0; top: 0; width: 1440px; height: 900px; pointer-events: none; z-index: 30; display: none;">
             <defs>
               <marker id="arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
                 <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#547a95"/>
               </marker>
             </defs>
-            <path d="M 120 115 C 95 105, 50 75, 20 15"
-                  fill="none"
-                  stroke="#547a95"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  marker-end="url(#arrowhead)"/>
+            <path id="arrowPath" d="" fill="none" stroke="#547a95" stroke-width="2.5" stroke-linecap="round" marker-end="url(#arrowhead)"/>
           </svg>
         </div>
       `;
@@ -587,16 +590,51 @@
       const wrapperSo = document.getElementById('lifted-03-stackoverflow');
       const iframeSo = document.getElementById('frame03Stackoverflow');
       const arrowSvg = document.getElementById('arrowSvg');
+      const arrowPath = document.getElementById('arrowPath');
 
-      clipToElement(wrapperGh, iframeGh, '.mission-card[data-domain-id="domain-github-com"]', 1.95, (rect, w, h) => {
-        // Point arrow directly at GitHub card's "Close 1 duplicate" button
-        const ghBox = wrapperGh.getBoundingClientRect();
-        arrowSvg.style.display = 'block';
-        arrowSvg.style.left = (ghBox.left + w - 260) + 'px';
-        arrowSvg.style.top = (ghBox.top + h - 30) + 'px';
+      function positionArrow(cardRect, w, h) {
+        try {
+          const doc = iframeGh.contentDocument;
+          if (!doc) return;
+          const btn = doc.querySelector('.mission-card[data-domain-id="domain-github-com"] button[data-action="dedup-keep-one"]');
+          if (!btn) {
+            arrowSvg.style.display = 'none';
+            return;
+          }
+          const btnRect = btn.getBoundingClientRect();
+          const ghBox = wrapperGh.getBoundingClientRect();
+          const scale = 1.55;
+
+          // Target is centered on the button, 14px (28 canvas px) below bottom edge
+          const btnCenterX = ghBox.left + (btnRect.left + btnRect.width / 2 - cardRect.left) * scale;
+          const btnBottomY = ghBox.top + (btnRect.bottom - cardRect.top) * scale;
+
+          const targetX = Math.round(btnCenterX - 10);
+          const targetY = Math.round(btnBottomY + 14);
+
+          // Start from empty space below the cards
+          const startX = Math.round(targetX + 60);
+          const startY = Math.round(targetY + 85);
+
+          // Smooth curve curving up into the target
+          const cp1X = Math.round(startX - 12);
+          const cp1Y = Math.round(startY - 40);
+          const cp2X = Math.round(targetX + 16);
+          const cp2Y = Math.round(targetY + 32);
+
+          arrowPath.setAttribute('d', `M ${startX} ${startY} C ${cp1X} ${cp1Y}, ${cp2X} ${cp2Y}, ${targetX} ${targetY}`);
+          arrowSvg.style.display = 'block';
+        } catch (e) {
+          console.warn('Arrow error:', e);
+          arrowSvg.style.display = 'none';
+        }
+      }
+
+      clipToElement(wrapperGh, iframeGh, '.mission-card[data-domain-id="domain-github-com"]', 1.55, (rect, w, h) => {
+        positionArrow(rect, w, h);
       });
 
-      clipToElement(wrapperSo, iframeSo, '.mission-card[data-domain-id="domain-stackoverflow-com"]', 1.95);
+      clipToElement(wrapperSo, iframeSo, '.mission-card[data-domain-id="domain-stackoverflow-com"]', 1.55);
 
     } else if (shot === '04-saved') {
       root.innerHTML = `
@@ -614,7 +652,7 @@
 
       const wrapper = document.getElementById('lifted-04-sidebar');
       const iframe = document.getElementById('frame04Sidebar');
-      clipToElement(wrapper, iframe, '#deferredColumn', 1.7);
+      clipToElement(wrapper, iframe, '#deferredColumn', 1.6);
 
     } else if (shot === '05-private') {
       root.innerHTML = `
@@ -624,8 +662,15 @@
             <p class="subhead">${config.subhead}</p>
           </div>
           ${buildWindow('frame05', 'harness.html?shot=05-private')}
+          <div class="lifted-card-wrapper" id="lifted-05-github">
+            <iframe id="frame05Lifted" src="harness.html?shot=05-private&lift=card"></iframe>
+          </div>
         </div>
       `;
+
+      const wrapper = document.getElementById('lifted-05-github');
+      const iframe = document.getElementById('frame05Lifted');
+      clipToElement(wrapper, iframe, '.mission-card[data-domain-id="domain-github-com"]', 2.0, null, 1300);
     }
   </script>
 </body>
