@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Tab Out — App Store Screenshot Composer</title>
+  <title>Tab Out — App Store Screenshot Composer v2</title>
   <style>
+    :root {
+      --ink: #24384a;
+      --slate: #547a95;
+      --page: #e8edf2;
+      --paper: #ffffff;
+      --warm-white: #f7f4ee;
+      --font-serif: ui-serif, "New York", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -14,65 +24,138 @@
       width: 1440px;
       height: 900px;
       overflow: hidden;
-      background: radial-gradient(130% 90% at 50% 0%, #edf2f7 0%, #d8e2eb 65%, #cdd9e4 100%);
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+      font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       position: relative;
     }
 
-    .composer-layout {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 26px;
+    /* -------------------------------------------------------------
+       Backgrounds per shot
+       ------------------------------------------------------------- */
+    body.shot-01-hero {
+      background: var(--ink);
+    }
+    body.shot-02-grouped {
+      background: var(--page);
+    }
+    body.shot-03-duplicates {
+      background: var(--warm-white);
+    }
+    body.shot-04-saved {
+      background: var(--slate);
+    }
+    body.shot-05-private {
+      background: var(--page);
     }
 
-    /* Top text header */
-    .hero-header {
-      text-align: center;
-      margin-bottom: 20px;
-      z-index: 2;
+    /* -------------------------------------------------------------
+       Headlines & Typography
+       ------------------------------------------------------------- */
+    .headline {
+      font-family: var(--font-serif);
+      font-size: 72px;
+      line-height: 1.06;
+      font-weight: 500;
+      letter-spacing: -1.2px;
     }
 
-    .hero-headline {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -0.8px;
-      color: #1a2f42;
-      line-height: 1.15;
-      margin-bottom: 7px;
-    }
-
-    .hero-subhead {
-      font-size: 16.5px;
-      font-weight: 400;
-      letter-spacing: -0.15px;
-      color: #526b80;
+    .subhead {
+      font-family: var(--font-sans);
+      font-size: 25px;
       line-height: 1.35;
+      font-weight: 400;
+      letter-spacing: -0.2px;
+      margin-top: 14px;
     }
 
-    /* macOS Safari-like window container */
+    /* Colors by shot theme */
+    body.shot-01-hero .headline {
+      color: #ffffff;
+    }
+    body.shot-01-hero .headline .accent {
+      font-style: italic;
+      color: #92b8d4;
+    }
+    body.shot-01-hero .subhead {
+      color: rgba(255, 255, 255, 0.74);
+    }
+
+    body.shot-02-grouped .headline {
+      color: var(--ink);
+    }
+    body.shot-02-grouped .headline .accent {
+      font-style: italic;
+      color: var(--slate);
+    }
+    body.shot-02-grouped .subhead {
+      color: rgba(36, 56, 74, 0.68);
+    }
+
+    body.shot-03-duplicates .headline {
+      color: var(--ink);
+    }
+    body.shot-03-duplicates .headline .accent {
+      font-style: italic;
+      color: var(--slate);
+    }
+    body.shot-03-duplicates .subhead {
+      color: rgba(36, 56, 74, 0.68);
+    }
+
+    body.shot-04-saved .headline {
+      color: #ffffff;
+    }
+    body.shot-04-saved .headline .accent {
+      font-style: italic;
+      color: #d2e6f6;
+    }
+    body.shot-04-saved .subhead {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    body.shot-05-private .headline {
+      color: var(--ink);
+    }
+    body.shot-05-private .headline .accent {
+      font-style: italic;
+      color: var(--slate);
+    }
+    body.shot-05-private .subhead {
+      color: rgba(36, 56, 74, 0.68);
+    }
+
+    /* -------------------------------------------------------------
+       macOS Window Frame
+       ------------------------------------------------------------- */
     .window-frame {
-      width: 1280px;
-      height: 790px;
       background: #e8edf2;
-      border-radius: 12px;
-      box-shadow:
-        0 30px 80px rgba(18, 35, 52, 0.20),
-        0 10px 28px rgba(18, 35, 52, 0.10),
-        0 0 0 1px rgba(36, 56, 74, 0.14);
+      border-radius: 14px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      z-index: 1;
+      box-shadow:
+        0 30px 80px rgba(18, 35, 52, 0.22),
+        0 10px 28px rgba(18, 35, 52, 0.12),
+        0 0 0 1px rgba(36, 56, 74, 0.12);
     }
 
-    /* Safari-like window title bar */
+    body.shot-01-hero .window-frame {
+      box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.55),
+        0 14px 35px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+
+    body.shot-04-saved .window-frame {
+      box-shadow:
+        0 35px 85px rgba(0, 0, 0, 0.35),
+        0 12px 30px rgba(0, 0, 0, 0.20),
+        0 0 0 1px rgba(255, 255, 255, 0.15);
+    }
+
     .window-titlebar {
-      height: 40px;
+      height: 38px;
       background: linear-gradient(180deg, #f7f9fa 0%, #ebeff2 100%);
       border-bottom: 1px solid rgba(36, 56, 74, 0.12);
       display: flex;
@@ -82,7 +165,6 @@
       flex-shrink: 0;
     }
 
-    /* Traffic lights */
     .traffic-lights {
       display: flex;
       align-items: center;
@@ -112,11 +194,10 @@
       border: 0.5px solid rgba(0, 0, 0, 0.15);
     }
 
-    /* Address bar */
     .address-bar {
       margin: 0 auto;
-      width: 440px;
-      height: 26px;
+      width: 380px;
+      height: 25px;
       background: #ffffff;
       border-radius: 6px;
       border: 1px solid rgba(36, 56, 74, 0.14);
@@ -141,7 +222,6 @@
       width: 90px;
     }
 
-    /* Window inner viewport (renders Tab Out) */
     .window-viewport {
       flex: 1;
       width: 100%;
@@ -159,77 +239,394 @@
       background: #e8edf2;
     }
 
-    /* Shot 02: Emphasise cards (zoom/crop into cards grid) */
-    body.shot-02-grouped .window-viewport iframe {
-      transform: scale(1.10) translateY(-22px);
-      transform-origin: top center;
+    /* -------------------------------------------------------------
+       Lifted Cards & Containers
+       ------------------------------------------------------------- */
+    .lifted-card-wrapper {
+      position: absolute;
+      overflow: hidden;
+      border-radius: 14px;
+      background: #ffffff !important;
+      box-shadow:
+        0 35px 85px rgba(18, 35, 52, 0.30),
+        0 14px 32px rgba(18, 35, 52, 0.18),
+        0 0 0 1px rgba(36, 56, 74, 0.12);
+      opacity: 0;
+      z-index: 20;
+    }
+
+    body.shot-04-saved .lifted-card-wrapper {
+      box-shadow:
+        0 35px 85px rgba(0, 0, 0, 0.40),
+        0 14px 32px rgba(0, 0, 0, 0.22),
+        0 0 0 1px rgba(255, 255, 255, 0.20);
+    }
+
+    .lifted-card-wrapper iframe {
+      border: none;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* -------------------------------------------------------------
+       Layout Specifics: Shot 01 (Hero)
+       ------------------------------------------------------------- */
+    .shot-01-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .shot-01-container .header-block {
+      position: absolute;
+      left: 80px;
+      top: 55px;
+      width: 880px;
+      z-index: 10;
+    }
+    .shot-01-container .window-frame {
+      position: absolute;
+      left: 240px;
+      top: 270px;
+      width: 1320px;
+      height: 750px;
+      z-index: 2;
+      border-radius: 14px 0 0 0;
+    }
+
+    /* -------------------------------------------------------------
+       Layout Specifics: Shot 02 (Grouped)
+       ------------------------------------------------------------- */
+    .shot-02-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .shot-02-container .header-block {
+      position: absolute;
+      left: 70px;
+      top: 130px;
+      width: 440px;
+      z-index: 10;
+    }
+    .shot-02-container .window-frame {
+      position: absolute;
+      left: 560px;
+      top: 50px;
+      width: 930px;
+      height: 800px;
+      z-index: 2;
+    }
+    #lifted-02-github {
+      left: 390px;
+      top: 360px;
+      z-index: 25;
+    }
+
+    /* -------------------------------------------------------------
+       Layout Specifics: Shot 03 (Duplicates)
+       ------------------------------------------------------------- */
+    .shot-03-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .shot-03-container .header-block {
+      position: absolute;
+      left: 0;
+      top: 50px;
+      width: 100%;
+      text-align: center;
+      z-index: 10;
+    }
+    .shot-03-container .cards-row {
+      position: absolute;
+      top: 225px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 50px;
+      z-index: 5;
+    }
+    .shot-03-container .lifted-card-wrapper {
+      position: relative;
+      opacity: 0;
+    }
+    .arrow-svg {
+      position: absolute;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    /* -------------------------------------------------------------
+       Layout Specifics: Shot 04 (Saved)
+       ------------------------------------------------------------- */
+    .shot-04-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .shot-04-container .window-frame {
+      position: absolute;
+      left: -140px;
+      top: 50px;
+      width: 940px;
+      height: 800px;
+      z-index: 2;
+    }
+    .shot-04-container .header-block {
+      position: absolute;
+      right: 60px;
+      top: 130px;
+      width: 440px;
+      z-index: 10;
+    }
+    #lifted-04-sidebar {
+      left: 420px;
+      top: 260px;
+      z-index: 25;
+    }
+
+    /* -------------------------------------------------------------
+       Layout Specifics: Shot 05 (Private / Swoosh)
+       ------------------------------------------------------------- */
+    .shot-05-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+    .shot-05-container .header-block {
+      position: absolute;
+      left: 0;
+      top: 40px;
+      width: 100%;
+      text-align: center;
+      z-index: 10;
+    }
+    .shot-05-container .window-frame {
+      position: absolute;
+      left: 70px;
+      top: 190px;
+      width: 1300px;
+      height: 680px;
+      z-index: 2;
     }
   </style>
 </head>
 <body>
-  <div class="composer-layout">
-    <div class="hero-header">
-      <h1 class="hero-headline" id="headline"></h1>
-      <p class="hero-subhead" id="subhead"></p>
-    </div>
 
-    <div class="window-frame">
-      <div class="window-titlebar">
-        <div class="traffic-lights">
-          <div class="traffic-dot dot-close"></div>
-          <div class="traffic-dot dot-minimize"></div>
-          <div class="traffic-dot dot-zoom"></div>
-        </div>
-        <div class="address-bar">
-          <svg class="address-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="9" y1="3" x2="9" y2="21"></line>
-          </svg>
-          <span>New Tab</span>
-        </div>
-        <div class="titlebar-spacer"></div>
-      </div>
-
-      <div class="window-viewport">
-        <iframe id="dashboardFrame"></iframe>
-      </div>
-    </div>
-  </div>
+  <div id="compositionRoot"></div>
 
   <script>
-    const SHOTS = {
+    const CONFIGS = {
       '01-hero': {
-        headline: 'All your open tabs. One calm page',
-        subhead: "Tab Out turns Safari's new tab into a clear map of everything you have open",
+        headline: 'Every open tab,<br><span class="accent">one</span> calm page',
+        subhead: "Tab Out turns Safari's new tab into a map of everything you have open",
       },
       '02-grouped': {
-        headline: 'Grouped by site, automatically',
-        subhead: 'Every tab sorted into a card per domain, so you find any page in a second',
+        headline: 'Sorted by <span class="accent">site</span>,<br>automatically',
+        subhead: 'Every tab lands in a card for its website,<br>so you find any page in a second',
       },
       '03-duplicates': {
-        headline: 'Spot duplicates. Close them in one click',
+        headline: '<span class="accent">Duplicates</span>, gone in one click',
         subhead: 'Same page open twice? Tab Out flags it and keeps just one',
       },
       '04-saved': {
-        headline: 'Save for later, close without guilt',
-        subhead: 'Park a tab on your reading list, then clear the clutter',
+        headline: 'Save it for <span class="accent">later</span>,<br>close the rest',
+        subhead: 'Park a page on a simple checklist,<br>then clear the clutter',
       },
       '05-private': {
-        headline: '100% local. No account. No tracking',
-        subhead: 'Your tabs never leave your Mac. Free and open source',
+        headline: 'Close tabs with a <span class="accent">swoosh</span>',
+        subhead: 'A satisfying burst of confetti every time you clear a group. All local, nothing tracked',
       },
     };
 
     const params = new URLSearchParams(window.location.search);
     const shot = params.get('shot') || '01-hero';
-    const config = SHOTS[shot] || SHOTS['01-hero'];
+    const config = CONFIGS[shot] || CONFIGS['01-hero'];
+    document.body.className = 'shot-' + shot;
 
-    document.body.classList.add('shot-' + shot);
-    document.getElementById('headline').textContent = config.headline;
-    document.getElementById('subhead').textContent = config.subhead;
+    const root = document.getElementById('compositionRoot');
 
-    const frame = document.getElementById('dashboardFrame');
-    frame.src = 'harness.html?shot=' + encodeURIComponent(shot);
+    // Helper: Build window frame HTML
+    function buildWindow(iframeId, iframeSrc) {
+      return `
+        <div class="window-frame">
+          <div class="window-titlebar">
+            <div class="traffic-lights">
+              <div class="traffic-dot dot-close"></div>
+              <div class="traffic-dot dot-minimize"></div>
+              <div class="traffic-dot dot-zoom"></div>
+            </div>
+            <div class="address-bar">
+              <svg class="address-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="9" y1="3" x2="9" y2="21"></line>
+              </svg>
+              <span>New Tab</span>
+            </div>
+            <div class="titlebar-spacer"></div>
+          </div>
+          <div class="window-viewport">
+            <iframe id="${iframeId}" src="${iframeSrc}"></iframe>
+          </div>
+        </div>
+      `;
+    }
+
+    // Helper: Clip iframe to element
+    function clipToElement(wrapper, iframe, selector, scale, onDone) {
+      let attempts = 0;
+      function attempt() {
+        attempts++;
+        try {
+          const doc = iframe.contentDocument;
+          if (doc) {
+            const el = doc.querySelector(selector);
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              if (rect.width > 0 && rect.height > 0) {
+                const w = Math.round(rect.width * scale);
+                const h = Math.round(rect.height * scale);
+                wrapper.style.width = w + 'px';
+                wrapper.style.height = h + 'px';
+                wrapper.style.borderRadius = Math.round(8 * scale) + 'px';
+
+                const docW = Math.max(doc.documentElement.scrollWidth, 1200);
+                const docH = Math.max(doc.documentElement.scrollHeight, 800);
+                iframe.style.position = 'absolute';
+                iframe.style.left = '0';
+                iframe.style.top = '0';
+                iframe.style.width = docW + 'px';
+                iframe.style.height = docH + 'px';
+                iframe.style.transformOrigin = '0 0';
+                iframe.style.transform = `scale(${scale}) translate(${-rect.left}px, ${-rect.top}px)`;
+
+                wrapper.style.opacity = '1';
+                if (onDone) onDone(rect, w, h);
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Clip error:', e);
+        }
+        if (attempts < 80) {
+          setTimeout(attempt, 25);
+        }
+      }
+
+      attempt();
+      iframe.addEventListener('load', attempt);
+    }
+
+    // Compose by shot
+    if (shot === '01-hero') {
+      root.innerHTML = `
+        <div class="shot-01-container">
+          <div class="header-block">
+            <h1 class="headline">${config.headline}</h1>
+            <p class="subhead">${config.subhead}</p>
+          </div>
+          ${buildWindow('frame01', 'harness.html?shot=01-hero')}
+        </div>
+      `;
+    } else if (shot === '02-grouped') {
+      root.innerHTML = `
+        <div class="shot-02-container">
+          <div class="header-block">
+            <h1 class="headline">${config.headline}</h1>
+            <p class="subhead">${config.subhead}</p>
+          </div>
+          ${buildWindow('frame02', 'harness.html?shot=02-grouped')}
+          <div class="lifted-card-wrapper" id="lifted-02-github">
+            <iframe id="frame02Lifted" src="harness.html?shot=02-grouped&lift=card"></iframe>
+          </div>
+        </div>
+      `;
+
+      const wrapper = document.getElementById('lifted-02-github');
+      const iframe = document.getElementById('frame02Lifted');
+      clipToElement(wrapper, iframe, '.mission-card[data-domain-id="domain-github-com"]', 1.8);
+
+    } else if (shot === '03-duplicates') {
+      root.innerHTML = `
+        <div class="shot-03-container">
+          <div class="header-block">
+            <h1 class="headline">${config.headline}</h1>
+            <p class="subhead">${config.subhead}</p>
+          </div>
+          <div class="cards-row" id="cardsRow">
+            <div class="lifted-card-wrapper" id="lifted-03-github">
+              <iframe id="frame03Github" src="harness.html?shot=03-duplicates&lift=card"></iframe>
+            </div>
+            <div class="lifted-card-wrapper" id="lifted-03-stackoverflow">
+              <iframe id="frame03Stackoverflow" src="harness.html?shot=03-duplicates&lift=card"></iframe>
+            </div>
+          </div>
+          <!-- Thin slate hand-drawn style arrow pointing at Close 1 duplicate button -->
+          <svg class="arrow-svg" id="arrowSvg" width="160" height="130" viewBox="0 0 160 130" style="display:none">
+            <defs>
+              <marker id="arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1.5 L 9 5 L 0 8.5 z" fill="#547a95"/>
+              </marker>
+            </defs>
+            <path d="M 120 115 C 95 105, 50 75, 20 15"
+                  fill="none"
+                  stroke="#547a95"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  marker-end="url(#arrowhead)"/>
+          </svg>
+        </div>
+      `;
+
+      const wrapperGh = document.getElementById('lifted-03-github');
+      const iframeGh = document.getElementById('frame03Github');
+      const wrapperSo = document.getElementById('lifted-03-stackoverflow');
+      const iframeSo = document.getElementById('frame03Stackoverflow');
+      const arrowSvg = document.getElementById('arrowSvg');
+
+      clipToElement(wrapperGh, iframeGh, '.mission-card[data-domain-id="domain-github-com"]', 1.95, (rect, w, h) => {
+        // Point arrow directly at GitHub card's "Close 1 duplicate" button
+        const ghBox = wrapperGh.getBoundingClientRect();
+        arrowSvg.style.display = 'block';
+        arrowSvg.style.left = (ghBox.left + w - 260) + 'px';
+        arrowSvg.style.top = (ghBox.top + h - 30) + 'px';
+      });
+
+      clipToElement(wrapperSo, iframeSo, '.mission-card[data-domain-id="domain-stackoverflow-com"]', 1.95);
+
+    } else if (shot === '04-saved') {
+      root.innerHTML = `
+        <div class="shot-04-container">
+          ${buildWindow('frame04', 'harness.html?shot=04-saved')}
+          <div class="header-block">
+            <h1 class="headline">${config.headline}</h1>
+            <p class="subhead">${config.subhead}</p>
+          </div>
+          <div class="lifted-card-wrapper" id="lifted-04-sidebar">
+            <iframe id="frame04Sidebar" src="harness.html?shot=04-saved&lift=sidebar"></iframe>
+          </div>
+        </div>
+      `;
+
+      const wrapper = document.getElementById('lifted-04-sidebar');
+      const iframe = document.getElementById('frame04Sidebar');
+      clipToElement(wrapper, iframe, '#deferredColumn', 1.7);
+
+    } else if (shot === '05-private') {
+      root.innerHTML = `
+        <div class="shot-05-container">
+          <div class="header-block">
+            <h1 class="headline">${config.headline}</h1>
+            <p class="subhead">${config.subhead}</p>
+          </div>
+          ${buildWindow('frame05', 'harness.html?shot=05-private')}
+        </div>
+      `;
+    }
   </script>
 </body>
 </html>

@@ -10,9 +10,54 @@
   <script src="../appstore/screenshots/fixtures.js"></script>
 
   <script>
-    // Ensure rAF progresses deterministically in headless Chrome
+    // Load fixture scenario from query string (?shot=01-hero)
+    const urlParams = new URLSearchParams(window.location.search);
+    const shot = urlParams.get('shot') || '01-hero';
+    const lift = urlParams.get('lift') || '';
+    document.documentElement.classList.add('shot-' + shot);
+    if (lift) {
+      document.documentElement.classList.add('lift-mode');
+      document.documentElement.classList.add('lift-' + lift);
+    }
+
+    // Seeded PRNG for deterministic confetti in shot 05
+    if (shot === '05-private') {
+      function sfc32(a, b, c, d) {
+        return function() {
+          a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
+          var t = (a + b | 0) + d | 0;
+          d = d + 1 | 0;
+          a = b ^ b >>> 9;
+          b = c + (c << 3) | 0;
+          c = (c << 21 | c >>> 11);
+          c = c + t | 0;
+          return (t >>> 0) / 4294967296;
+        };
+      }
+      Math.random = sfc32(0x9E3779B9, 0x243F6A88, 0xB7E15162, 1234567);
+    }
+
+    // Deterministic requestAnimationFrame via setTimeout
+    let rafActive = true;
     window.requestAnimationFrame = function(cb) {
-      return setTimeout(cb, 16);
+      if (!rafActive) return 0;
+      return setTimeout(function() {
+        if (!rafActive) return;
+        cb(performance.now());
+      }, 16);
+    };
+
+    // For shot 05: prevent card.remove() from removing the closing card at 300ms
+    const origSetTimeout = window.setTimeout.bind(window);
+    window.setTimeout = function(fn, delay, ...args) {
+      if (shot === '05-private' && delay === 300) {
+        const fnStr = fn.toString();
+        if (fnStr.includes('card.remove') || fnStr.includes('checkAndShowEmptyState')) {
+          // Keep the card in the DOM mid-closing!
+          return 0;
+        }
+      }
+      return origSetTimeout(fn, delay, ...args);
     };
 
     // Freeze time to morning (09:12:00) so greeting is "Good morning"
@@ -34,10 +79,6 @@
     }
     globalThis.Date = MockDate;
 
-    // Load fixture scenario from query string (?shot=01-hero)
-    const urlParams = new URLSearchParams(window.location.search);
-    const shot = urlParams.get('shot') || '01-hero';
-    document.documentElement.classList.add('shot-' + shot);
     const fixture = (globalThis.FIXTURES && globalThis.FIXTURES[shot]) || { tabs: [], deferred: [] };
 
     let currentTabs = JSON.parse(JSON.stringify(fixture.tabs || []));
@@ -111,22 +152,57 @@
       animation: none !important;
     }
 
+    /* Shot 05: closing card stays in mid-burst state */
+    html.shot-05-private .mission-card.closing {
+      opacity: 0.55 !important;
+      transform: scale(0.96) !important;
+      pointer-events: none;
+    }
+
+    /* Lift mode: transparent background */
+    html.lift-mode,
+    body.lift-mode {
+      background: transparent !important;
+    }
+
+    /* Lifted sidebar styling */
+    html.lift-sidebar #openTabsSection,
+    html.lift-sidebar header {
+      display: none !important;
+    }
+    html.lift-sidebar .dashboard-columns {
+      margin: 0 !important;
+    }
+    html.lift-sidebar .container {
+      padding: 0 !important;
+    }
+    html.lift-sidebar #deferredColumn {
+      background: #ffffff !important;
+      border-radius: 12px !important;
+      border: 1px solid rgba(36, 56, 74, 0.12) !important;
+      padding: 20px 22px !important;
+      box-shadow: none !important;
+      width: 320px !important;
+      position: static !important;
+      max-height: none !important;
+    }
+
     /* Polish layout spacing for window frame presentation */
     .container {
       padding: 30px 32px 48px !important;
     }
 
-    /* Shot 02: Keep margins comfortable when zoom is applied in composer */
+    /* Shot 02: Keep margins comfortable */
     html.shot-02-grouped .container,
     body.shot-02-grouped .container {
-      padding: 24px 84px 40px !important;
+      padding: 24px 36px 40px !important;
     }
 
     /* Shot 03: Vibrant amber accents for duplicate badges and status bar */
     :root {
       --accent-amber: #c8751b;
     }
-    .mission-card.has-amber-bar .status-bar {
+    .mission-card.has-amber-bar::before {
       background: #c8751b !important;
     }
     .dupe-tabs-badge {
@@ -227,5 +303,63 @@
 </div>
 
 <script src="app.js"></script>
+<script>
+  // Signal readiness and handle shot-05 close trigger
+  (function() {
+    function notifyParent() {
+      window.__harnessReady = true;
+      try {
+        window.parent.postMessage({ type: 'HARNESS_READY', shot: shot, lift: lift }, '*');
+      } catch (e) {}
+    }
+
+    function checkReady() {
+      if (shot === '05-private') {
+        const githubCard = document.querySelector('.mission-card[data-domain-id="domain-github-com"]');
+        if (!githubCard) {
+          setTimeout(checkReady, 25);
+          return;
+        }
+        const closeBtn = githubCard.querySelector('.action-btn.close-tabs');
+        if (!closeBtn) {
+          setTimeout(checkReady, 25);
+          return;
+        }
+        setTimeout(function() {
+          closeBtn.click();
+          // Let confetti burst progress for 300ms into the burst, then freeze
+          setTimeout(function() {
+            rafActive = false; // Freeze all confetti rAF loops mid-burst
+            notifyParent();
+          }, 300);
+        }, 60);
+        return;
+      }
+
+      if (lift === 'sidebar') {
+        const deferred = document.getElementById('deferredList');
+        if (deferred && deferred.children.length > 0) {
+          notifyParent();
+          return;
+        }
+        setTimeout(checkReady, 25);
+        return;
+      }
+
+      const openTabs = document.getElementById('openTabsMissions');
+      if (openTabs && openTabs.children.length > 0) {
+        notifyParent();
+      } else {
+        setTimeout(checkReady, 25);
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      checkReady();
+    } else {
+      window.addEventListener('load', checkReady);
+    }
+  })();
+</script>
 </body>
 </html>
