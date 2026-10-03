@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tab Out — Harness</title>
+
+  <base href="../../extension/">
+  <link rel="stylesheet" href="style.css">
+
+  <script src="../appstore/screenshots/fixtures.js"></script>
+
+  <script>
+    // Ensure rAF progresses deterministically in headless Chrome
+    window.requestAnimationFrame = function(cb) {
+      return setTimeout(cb, 16);
+    };
+
+    // Freeze time to morning (09:12:00) so greeting is "Good morning"
+    const FROZEN_DATE = new Date(2026, 4, 12, 9, 12, 0); // May 12, 2026, 09:12:00 local
+    const FROZEN_MS = FROZEN_DATE.getTime();
+    const OrigDate = globalThis.Date;
+
+    class MockDate extends OrigDate {
+      constructor(...args) {
+        if (args.length === 0) {
+          super(FROZEN_MS);
+        } else {
+          super(...args);
+        }
+      }
+      static now() {
+        return FROZEN_MS;
+      }
+    }
+    globalThis.Date = MockDate;
+
+    // Load fixture scenario from query string (?shot=01-hero)
+    const urlParams = new URLSearchParams(window.location.search);
+    const shot = urlParams.get('shot') || '01-hero';
+    document.documentElement.classList.add('shot-' + shot);
+    const fixture = (globalThis.FIXTURES && globalThis.FIXTURES[shot]) || { tabs: [], deferred: [] };
+
+    let currentTabs = JSON.parse(JSON.stringify(fixture.tabs || []));
+    let currentDeferred = JSON.parse(JSON.stringify(fixture.deferred || []));
+
+    // Mock WebExtension APIs needed by extension/app.js
+    globalThis.browser = {
+      runtime: {
+        getURL(path) {
+          return 'chrome-extension://tab-out/' + path;
+        }
+      },
+      tabs: {
+        query(queryInfo) {
+          return Promise.resolve(JSON.parse(JSON.stringify(currentTabs)));
+        },
+        create(props) {
+          const newTab = { id: Date.now(), ...props };
+          currentTabs.push(newTab);
+          return Promise.resolve(newTab);
+        },
+        remove(ids) {
+          const idList = Array.isArray(ids) ? ids : [ids];
+          currentTabs = currentTabs.filter(t => !idList.includes(t.id));
+          return Promise.resolve();
+        },
+        update(id, props) {
+          const tab = currentTabs.find(t => t.id === id);
+          if (tab) Object.assign(tab, props);
+          return Promise.resolve(tab);
+        }
+      },
+      windows: {
+        getCurrent() {
+          return Promise.resolve({ id: 1, focused: true });
+        },
+        update(id, props) {
+          return Promise.resolve({ id, ...props });
+        }
+      },
+      storage: {
+        local: {
+          get(key) {
+            if (key === 'deferred' || (Array.isArray(key) && key.includes('deferred'))) {
+              return Promise.resolve({ deferred: JSON.parse(JSON.stringify(currentDeferred)) });
+            }
+            return Promise.resolve({});
+          },
+          set(items) {
+            if (items.deferred) {
+              currentDeferred = JSON.parse(JSON.stringify(items.deferred));
+            }
+            return Promise.resolve();
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Complete animations immediately for screenshot capture */
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+
+    .mission-card,
+    .active-section .missions.stagger-in .mission-card {
+      opacity: 1 !important;
+      transform: none !important;
+      animation: none !important;
+    }
+
+    /* Polish layout spacing for window frame presentation */
+    .container {
+      padding: 30px 32px 48px !important;
+    }
+
+    /* Shot 02: Keep margins comfortable when zoom is applied in composer */
+    html.shot-02-grouped .container,
+    body.shot-02-grouped .container {
+      padding: 24px 84px 40px !important;
+    }
+
+    /* Shot 03: Vibrant amber accents for duplicate badges and status bar */
+    :root {
+      --accent-amber: #c8751b;
+    }
+    .mission-card.has-amber-bar .status-bar {
+      background: #c8751b !important;
+    }
+    .dupe-tabs-badge {
+      background: #c8751b !important;
+      color: #ffffff !important;
+    }
+    .chip-dupe-badge {
+      color: #c8751b !important;
+      font-weight: 700 !important;
+    }
+
+    header {
+      margin-bottom: 30px !important;
+      padding-bottom: 20px !important;
+    }
+
+    /* Prevent scrollbars */
+    html, body {
+      overflow: hidden !important;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER — greeting on the left -->
+  <header>
+    <div class="header-left">
+      <h1 id="greeting"></h1>
+      <div class="date" id="dateDisplay"></div>
+    </div>
+  </header>
+
+  <!-- TAB OUT DUPES BANNER -->
+  <div class="tab-cleanup-banner" id="tabOutDupeBanner" style="display:none">
+    <div class="tab-cleanup-left">
+      <div class="tab-cleanup-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+        </svg>
+      </div>
+      <div class="tab-cleanup-text">
+        You have <strong id="tabOutDupeCount"></strong> Tab Out tabs open. Keep just this one?
+      </div>
+    </div>
+    <button class="tab-cleanup-btn" data-action="close-tabout-dupes">Close extras</button>
+  </div>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="dashboard-columns" id="dashboardColumns">
+
+    <!-- LEFT COLUMN: Open tabs -->
+    <div class="active-section" id="openTabsSection" style="display:none">
+      <div class="section-header">
+        <h2 id="openTabsSectionTitle">Right now</h2>
+        <div class="section-line"></div>
+        <div class="section-count" id="openTabsSectionCount"></div>
+      </div>
+      <div class="missions" id="openTabsMissions"></div>
+    </div>
+
+    <!-- RIGHT COLUMN: Saved for Later checklist -->
+    <div class="deferred-column" id="deferredColumn">
+      <div class="section-header">
+        <h2>Saved for later</h2>
+        <div class="section-line"></div>
+        <div class="section-count" id="deferredCount"></div>
+      </div>
+
+      <div class="deferred-list" id="deferredList"></div>
+
+      <div class="deferred-empty" id="deferredEmpty" style="display:none">
+        Nothing saved. Living in the moment.
+      </div>
+
+      <div class="deferred-archive" id="deferredArchive" style="display:none">
+        <button class="archive-toggle" id="archiveToggle">
+          <svg class="archive-chevron" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+          Archive
+          <span class="archive-count" id="archiveCount"></span>
+        </button>
+        <div class="archive-body" id="archiveBody" style="display:none">
+          <input type="text" class="archive-search" id="archiveSearch" placeholder="Search archived tabs...">
+          <div class="archive-list" id="archiveList"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .dashboard-columns -->
+
+</div><!-- end .container -->
+
+<div class="toast" id="toast">
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+  </svg>
+  <span id="toastText"></span>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
